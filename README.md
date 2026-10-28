@@ -1,19 +1,50 @@
 # Extreme Heat and Labor-Market Reallocation: Evidence from Iran
 
-Replication code for the paper by Zahra Aghaei (work in progress). Starting from two raw data
-files, the code builds the worker-level transition panel and the county weather measures,
-estimates every model in the paper, and writes all tables (Excel and LaTeX) and figures.
+This is the code for my master's thesis at Sharif University of Technology (supervised by Dr. Amanzadeh, defended September 2026), which I am now turning into a paper.
+
+The question is what a hot season does to people who work in agriculture. Do they move into industry and services, or do they drop out of work altogether? Iran is a good place to look at this: summers are getting hotter, agriculture still employs many people in rural areas, and the Labor Force Survey follows the same people for a year.
+
+## The setting
+
+Very hot days have become more common. The average county had about 48-51 days a year at or above 35°C between 1340 and 1370, and 63-69 days in 1400-1402. At the same time agriculture's share of employment fell from about 24 percent in 1384 to about 14 percent in 1403.
+
+<p align="center">
+  <img src="docs/figures/hot_days_trend.png" width="48%" alt="Trend in very hot days">
+  <img src="docs/figures/employment_shares.png" width="48%" alt="Sector shares of employment">
+</p>
+
+Heat is very unevenly spread. Most of the hottest counties are in the south and south-east, while the Caspian coast and the north-west see few such days. County fixed effects take this cross-sectional difference out, so the estimates come from hotter and cooler seasons *within* the same county.
+
+<p align="center">
+  <img src="docs/figures/map_hot_days.png" width="70%" alt="Days per year at or above 35°C, by county">
+</p>
+
+## Data and design
+
+- **Workers.** The rotating panel of Iran's Labor Force Survey, 1384-1403. I link people across waves and follow everyone employed in agriculture to the same season one year later: 322,262 transitions from 336 counties.
+- **Weather.** Daily maximum temperature and rainfall for every county, matched to the survey on the 1385 county boundaries.
+- **Heat measure.** `Days35`, the number of days in the origin season with a maximum of 35°C or more, and `HeatDose35`, the degree-days above 35°C.
+- **Model.** Linear probability models for leaving agriculture and for each destination (industry, services, unemployment, inactivity), with county, province-by-year and season fixed effects, individual controls and rainfall. Standard errors are clustered by county.
+
+## Main result
+
+Ten more days at or above 35°C in the origin season raise the probability of leaving agriculture by **0.66 percentage points** (SE 0.09), about 2.4 percent of the baseline exit rate. Most of this, around three quarters, goes into unemployment and inactivity rather than into other sectors.
+
+![Coefficients for seven outcomes](docs/figures/coef_main_days35.png)
+
+Blue dots are the preferred specification. Orange squares add province-by-year-by-season fixed effects, which is much more demanding. The total effect gets smaller (0.29), but the move into non-employment survives, while the move into industry and services disappears. So the part of the response I trust most is that hot seasons push agricultural workers *out of work*, not into better jobs.
+
+The thesis also checks the result against other heat measures, the timing of exposure, attrition from the panel, a stricter person link, spatial standard errors, and a multinomial logit as a nonlinear version of the same model.
+
+---
+
+## Reproducing the results
+
+Starting from two raw data files, the code builds the worker-level transition panel and the county weather measures, estimates every model in the paper, and writes all tables (Excel and LaTeX) and figures.
 
 The data are **not** in this repository. They are shared separately (see [Data](#data)).
 
-## About how this code was written
-
-The code was written in different periods (the thesis stage and the later update of the
-paper). It was later collected, cleaned and partly rewritten into one ordered pipeline with the
-help of AI (Claude, by Anthropic). The author checked the logic and the results. Please report
-any problem you find.
-
-## Requirements
+### Requirements
 
 * **Stata 17** (MP was used; any edition that can hold the 2.9 GB survey file in memory).
   About 16 GB of RAM and 10 GB of free disk space are recommended (the files built in
@@ -24,7 +55,7 @@ any problem you find.
 * **Python 3.10 or newer** with `pandas` and `numpy` (`pip install -r requirements.txt`).
   Python only turns the Stata result files into LaTeX table fragments; it runs no regression.
 
-## Data
+### Data
 
 Put the files into `data/` with exactly these names (sizes and MD5 checksums are in
 [`data/README.md`](data/README.md)):
@@ -40,7 +71,7 @@ The small code tables in `lookups/` are part of the repository: county codebook 
 boundary polygons to the survey county codes, and the many-to-one county list 1367-1403.
 They contain no survey data.
 
-## How to run
+### How to run
 
 1. Copy the data files into `data/` (see above).
 2. In Stata, run `install_packages.do` once.
@@ -66,14 +97,14 @@ They contain no survey data.
 
 **Run time.** A full run takes several hours on a laptop. The data steps 01-03 and the attrition
 step 42 (logit propensity model) are the slowest. For orientation, steps 26-29 and 42-46
-together took about 1 h 45 min on the author's laptop. Steps 01-03 are needed only once: after
+together took about 1 h 45 min on my laptop. Steps 01-03 are needed only once: after
 that, any single step can be rerun alone by setting the other switches to 0. If step 42 is too
 slow, `global PROP_METHOD "lpm"` in `master.do` uses a linear propensity model instead.
 
 **Check.** Compare the results with [`docs/reference_results.md`](docs/reference_results.md)
 (headline coefficient for exit from agriculture: 0.6615, SE 0.0919, N = 322,262).
 
-## Run settings
+### Run settings
 
 | Setting in `master.do` | Meaning |
 |---|---|
@@ -86,7 +117,7 @@ slow, `global PROP_METHOD "lpm"` in `master.do` uses a linear propensity model i
 Each run writes to its own folder `output/<RUN_NAME>/`, so runs never overwrite each other.
 The multinomial logit models of the thesis are not part of this pipeline.
 
-## Folders
+### Folders
 
 | Folder | Content |
 |---|---|
@@ -97,11 +128,12 @@ The multinomial logit models of the thesis are not part of this pipeline.
 | `intermediate/` | Files built by steps 01-03 and some later steps (made by the code, not in the repository) |
 | `output/data_build/` | Checks written while the data are built |
 | `output/<RUN_NAME>/` | `tables/` Excel workbooks, `results/` estimates as .dta, `graphs/` figures, `tex/` LaTeX fragments, `logs/` |
-| `docs/` | Map of paper exhibits to code, reference results |
+| `docs/` | Map of paper exhibits to code, reference results, figures used in this README |
 
 Which step produces each table and figure of the paper: [`docs/output_map.md`](docs/output_map.md).
 
-## Steps
+<details>
+<summary><b>What each step does</b> (click to open)</summary>
 
 | Step | What it does |
 |---|---|
@@ -143,10 +175,16 @@ Which step produces each table and figure of the paper: [`docs/output_map.md`](d
 | `60_figures.do` | Coefficient figures |
 | `61_maps.do` | Maps |
 
-## Known points
+</details>
+
+### Known points
 
 * From 1401 about 2.5 percent of the employed have no sector code (see `UNCLASSIFIED_AS_SERVICES`).
 * For 1402-1403 the ISIC code in the survey has only one or two digits; the sector is taken from
   the first two digits.
 * In the survey data `urban_origin == 1` means **rural** origin.
 * The household member number (used for the strict person ID) exists only from 1387.
+
+### A note on the code
+
+I wrote this code in two rounds, first for the thesis and later for the paper. When I put the pieces together into one ordered pipeline I used Claude (Anthropic) to help clean and partly rewrite it, and then checked the logic and the results myself. If you find a problem, please let me know.
